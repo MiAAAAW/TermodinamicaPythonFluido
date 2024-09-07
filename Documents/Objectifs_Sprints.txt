@@ -1,0 +1,40 @@
+OBJECTIF 1 : Simular diferentes fluidos (líquido y gas), enfoque visual
+
+Sprint 1 : Modelización y establecimiento de ecuaciones
+
+Para el gas: Colisiones elásticas, modelo de gas ideal
+Para el líquido: Modelo de SPH (Smoothed-particle hydrodynamics - Hidrodinámica de partículas suavizadas)
+
+Sprint 2 : Primera simulación con matplotlib
+
+Sprint 3 : Ajuste de parámetros y verificación respecto a la teoría
+
+Para el gas: Comparación con la teoría (distribución de velocidades según Maxwell-Boltzmann)
+
+Sprint 4 : Añadir funcionalidades
+
+Para el gas: Cálculo de la presión y visualización en la simulación
+
+
+
+OBJECTIF 2 : Crear una interfaz gráfica
+
+Sprint 4 : Interfaz gráfica para la simulación de líquidos
+
+El usuario puede elegir: Número de partículas, color
+
+Sprint 5 : Interfaz gráfica para la simulación de gases
+
+El usuario puede elegir: Tipo de simulación (clásica o mezcla de gases ideales), parámetros (Número de partículas, Temperatura)
+
+
+
+OBJECTIF 3 : Parte de Víctor (¿Simulación interactiva?)
+
+Sprint 6 : ...
+
+
+
+OBJECTIF 4 : Crear una interfaz global
+
+Sprint 7 : Interfaz de selección entre cada simulación
