@@ -116,11 +116,16 @@ from tkinter.colorchooser import askcolor
 
 
 def rgb_a_hsv(r, g, b):
-    r, g, b = r/255.0, g/255.0, b/255.0
+    # Normalizar los valores RGB a [0, 1]
+    r, g, b = r / 255.0, g / 255.0, b / 255.0
+
+    # Calcular el valor máximo y mínimo
     mx = max(r, g, b)
     mn = min(r, g, b)
     df = mx - mn
-    if mx == mn:
+
+    # Calcular el matiz (h)
+    if df == 0:
         h = 0
     elif mx == r:
         h = (60 * ((g - b) / df) + 360) % 360
@@ -128,19 +133,24 @@ def rgb_a_hsv(r, g, b):
         h = (60 * ((b - r) / df) + 120) % 360
     elif mx == b:
         h = (60 * ((r - g) / df) + 240) % 360
-    if mx == 0:
-        s = 0
-    else:
-        s = (df / mx) * 100
-    # Escalar los valores para que estén entre 0 y 255
-    h = np.clip(int(h / 360 * 255), 0, 255)
-    s = np.clip(int(s / 100 * 255), 0, 255)
-    v = np.clip(int(v / 100 * 255), 0, 255)
+
+    # Calcular la saturación (s)
+    s = 0 if mx == 0 else (df / mx) * 100
+
+    # Calcular el valor (v)
+    v = mx * 100
+
+    # Clipping para asegurar que los valores estén en el rango correcto
+    h = np.clip(h, 0, 360)
+    s = np.clip(s, 0, 100)
+    v = np.clip(v, 0, 100)
 
     return h, s, v
 
 def hex_a_rgb(hex):
+    # Quitar el carácter '#' al inicio del string hexadecimal
     h = hex.lstrip("#")
+    # Convertir el valor hexadecimal a valores RGB
     return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
 
 
@@ -201,7 +211,35 @@ class FrameAgregarPunto(tk.Frame):
                 print("creación de la flecha", i)
                 self.canvas.create_line(posx + tamaño // 2, posy + tamaño // 2, posx + tamaño // 2 + np.cos(i / nb_flechas * 2 * np.pi) * velocidad * 10, posy + tamaño // 2 + np.sin(i / nb_flechas * 2 * np.pi) * velocidad * 10, arrow=tk.LAST)
 
+        for i in tree.get_children():
+            posy, posx = [int(i) for i in tree.item(i)["values"][0].split(" ")]
+            tamaño_punto = int(tree.item(i)["values"][1])
+            velocidad_punto = int(tree.item(i)["values"][2])
+            direccion_punto = int(tree.item(i)["values"][3]) / 180 * np.pi
+            tinta = int(tree.item(i)["values"][4])
+            modo = tree.item(i)["values"][5]
+            
+            # se crea un círculo para mostrar el punto
+            self.canvas.create_oval(posx, posy, posx + tamaño_punto, posy + tamaño_punto, fill="black" if tinta == 1 else "white")
 
+            # se añade una flecha para mostrar la dirección y la velocidad
+            print(self.variable_combobox_modo.get(), i) 
+            if modo == "Direccional":
+                self.canvas.create_line(posx + tamaño_punto // 2, posy + tamaño_punto // 2, posx + tamaño_punto // 2 + np.cos(direccion_punto) * velocidad_punto * 10, posy + tamaño_punto // 2 + np.sin(direccion_punto) * velocidad_punto * 10, arrow=tk.LAST)
+            elif modo == "Divergente":
+                nb_flechas = 8
+                for i in range(nb_flechas):
+                    print("creación de la flecha", i)
+                    self.canvas.create_line(posx + tamaño_punto // 2, posy + tamaño_punto // 2, posx + tamaño_punto // 2 + np.cos(i / nb_flechas * 2 * np.pi) * velocidad_punto * 10, posy + tamaño_punto // 2 + np.sin(i / nb_flechas * 2 * np.pi) * velocidad_punto * 10, arrow=tk.LAST)
+                #self.canvas.create_line(posx + tamaño_punto // 2, posy + tamaño_punto // 2, posx + tamaño_punto // 2 - np.cos(direccion_punto) * velocidad_punto * 10, posy + tamaño_punto // 2 - np.sin(direccion_punto) * velocidad_punto * 10, arrow=tk.LAST)
+        # si hay muros, se muestran 
+        if self.SimFlu.variable_checkbox_muros.get() == 1:
+            grosor_muros = 5
+            self.canvas.create_line(0, grosor_muros, self.SimFlu.RESOLUTION[0], grosor_muros, fill="black", width=grosor_muros)
+            self.canvas.create_line(grosor_muros, 0, grosor_muros, self.SimFlu.RESOLUTION[1], fill="black", width=grosor_muros)
+            self.canvas.create_line(self.SimFlu.RESOLUTION[0], 0, self.SimFlu.RESOLUTION[0], self.SimFlu.RESOLUTION[1], fill="black", width=grosor_muros)
+            self.canvas.create_line(0, self.SimFlu.RESOLUTION[1], self.SimFlu.RESOLUTION[0], self.SimFlu.RESOLUTION[1], fill="black", width=grosor_muros)
+        self.canvas.update()    
         
     #     #on ajoute les points de départ, qui sont stockés dans tree
     #     for i in tree.get_children():
@@ -356,38 +394,7 @@ class FrameAgregarPunto(tk.Frame):
     #     self.top.destroy()
     #     self._update_canvas()
 
-             # se añaden los puntos de inicio, que están almacenados en tree
-        for i in tree.get_children():
-            posy, posx = [int(i) for i in tree.item(i)["values"][0].split(" ")]
-            tamaño_punto = int(tree.item(i)["values"][1])
-            velocidad_punto = int(tree.item(i)["values"][2])
-            direccion_punto = int(tree.item(i)["values"][3]) / 180 * np.pi
-            tinta = int(tree.item(i)["values"][4])
-            modo = tree.item(i)["values"][5]
             
-            # se crea un círculo para mostrar el punto
-            self.canvas.create_oval(posx, posy, posx + tamaño_punto, posy + tamaño_punto, fill="black" if tinta == 1 else "white")
-
-            # se añade una flecha para mostrar la dirección y la velocidad
-            print(self.variable_combobox_modo.get(), i) 
-            if modo == "Direccional":
-                self.canvas.create_line(posx + tamaño_punto // 2, posy + tamaño_punto // 2, posx + tamaño_punto // 2 + np.cos(direccion_punto) * velocidad_punto * 10, posy + tamaño_punto // 2 + np.sin(direccion_punto) * velocidad_punto * 10, arrow=tk.LAST)
-            elif modo == "Divergente":
-                nb_flechas = 8
-                for i in range(nb_flechas):
-                    print("creación de la flecha", i)
-                    self.canvas.create_line(posx + tamaño_punto // 2, posy + tamaño_punto // 2, posx + tamaño_punto // 2 + np.cos(i / nb_flechas * 2 * np.pi) * velocidad_punto * 10, posy + tamaño_punto // 2 + np.sin(i / nb_flechas * 2 * np.pi) * velocidad_punto * 10, arrow=tk.LAST)
-                #self.canvas.create_line(posx + tamaño_punto // 2, posy + tamaño_punto // 2, posx + tamaño_punto // 2 - np.cos(direccion_punto) * velocidad_punto * 10, posy + tamaño_punto // 2 - np.sin(direccion_punto) * velocidad_punto * 10, arrow=tk.LAST)
-        # si hay muros, se muestran 
-        if self.SimFlu.variable_checkbox_muros.get() == 1:
-            grosor_muros = 5
-            self.canvas.create_line(0, grosor_muros, self.SimFlu.RESOLUTION[0], grosor_muros, fill="black", width=grosor_muros)
-            self.canvas.create_line(grosor_muros, 0, grosor_muros, self.SimFlu.RESOLUTION[1], fill="black", width=grosor_muros)
-            self.canvas.create_line(self.SimFlu.RESOLUTION[0], 0, self.SimFlu.RESOLUTION[0], self.SimFlu.RESOLUTION[1], fill="black", width=grosor_muros)
-            self.canvas.create_line(0, self.SimFlu.RESOLUTION[1], self.SimFlu.RESOLUTION[0], self.SimFlu.RESOLUTION[1], fill="black", width=grosor_muros)
-        self.canvas.update()
-
-    
     def crear_widgets(self):
         # se añadirá un canvas para mostrar la posición del punto
         self.canvas = tk.Canvas(self, width=self.SimFlu.RESOLUTION[0], height=self.SimFlu.RESOLUTION[1], bg="grey")
@@ -509,11 +516,6 @@ class FrameAgregarPunto(tk.Frame):
         self._actualizar_canvas()
    
 
-
-
-
-
-
 #     def valider_point(self):
 #         posx = int(self.slider_posx.get())
 #         posy = int(self.slider_posy.get())
@@ -626,7 +628,7 @@ class FrameAgregarPunto(tk.Frame):
         modo = self.variable_combobox_modo.get()
 
         self.SimFlu.tree.insert('', tk.END, values=((posy, posx), tamaño, velocidad, dirección, tinta, modo))
-        #self.master.destroy()
+        self.master.destroy()
     
     def crear_puntos_aleatorios(self):
         nb_puntos = int(self.slider_nb_puntos.get())
@@ -654,9 +656,10 @@ class SimFlu():
         self.tamaño_parametro = 350
         self.VELOCIDAD_SIMULACION_MAX = 10
         self.VELOCIDAD_SIMULACION_MIN = 1
-        self.NOMBRE_APLICACION = "Simulador de Fluidos"
+        self.SIMULATION_SPEED_MAX = 100  # Define este atributo
+        self.NOMBRE_APLICACION = "XSIMFLUD : Software Simulador de Fluidos"
 
-        self.colores = [None, '#8b32a8n', None]
+        self.colores = [None, '#8b32a8', None]
 
         # se crea una lista que contendrá los frames
         self.frames = []
@@ -737,8 +740,15 @@ class SimFlu():
         self.checkbox_muros.grid(row=7, column=0)
 
         # se añade un parámetro (slider) para controlar el aspecto del humo
-        self.label = tk.Label(self.canvas_parametro, text="Aspecto del humo")
-        self.label.grid(row=8, column=0)
+        # self.label = tk.Label(self.canvas_parametro, text="Aspecto del humo")
+        # self.label.grid(row=8, column=0)
+        # self.slider_aspecto_humo = tk.Scale(self.canvas_parametro, from_=0, to=7, orient=tk.HORIZONTAL)
+        # self.slider_aspecto_humo.set(1)
+        # self.slider_aspecto_humo.grid(row=8, column=1)
+
+        # Añadimos un parámetro (slider) para controlar el aspecto del humo
+        self.label_aspecto_humo = tk.Label(self.canvas_parametro, text="Aspecto del humo")
+        self.label_aspecto_humo.grid(row=8, column=0)
         self.slider_aspecto_humo = tk.Scale(self.canvas_parametro, from_=0, to=7, orient=tk.HORIZONTAL)
         self.slider_aspecto_humo.set(1)
         self.slider_aspecto_humo.grid(row=8, column=1)
@@ -765,9 +775,9 @@ class SimFlu():
         self.boton_guardar = tk.Button(self.canvas_parametro, text="Guardar", command=self.guardar_simulacion)
         self.boton_guardar.grid(row=11, column=1)
 
-        # se crea una barra de progreso
+        # se crea una barra de progreso, con un espacio vertical (pady) entre el botón y la barra
         self.barra_progreso = ttk.Progressbar(self.canvas_parametro, orient=tk.HORIZONTAL, length=200, mode='determinate')
-        self.barra_progreso.grid(row=12, column=0, columnspan=2)
+        self.barra_progreso.grid(row=14, column=0, columnspan=3, pady=20)  # Agrega un espacio vertical de 20 píxeles
 
     def elegir_color(self):
         self.colores = askcolor(title="Elige un color para la animación")
@@ -778,7 +788,7 @@ class SimFlu():
         self.boton_guardar.configure(state="disabled")
 
         # se recuperan los puntos de inicio
-        puntos = []
+        puntos = [self.tree.item(i)["values"] for i in self.tree.get_children()]
 
         # se añaden los puntos de inicio almacenados en tree
         for i in self.tree.get_children():
@@ -818,7 +828,7 @@ class SimFlu():
         duracion = int(self.slider_duracion.get())
 
         color_params = np.array([0, 1, 255])
-
+    
         # se define una función para mostrar las imágenes
         def mostrar_imagen(i):
             try:
@@ -889,13 +899,13 @@ class SimFlu():
         for elemento_seleccionado in elementos_seleccionados:
             self.tree.delete(elemento_seleccionado)
 
-        if hasattr(self, "ajoutFrame"):
-            self.ajoutFrame._actualizar_canvas()
+        if hasattr(self, "Modificar"):
+            self.crear_puntos_aleatorios._actualizar_canvas()
 
     def modificar_parametros(self):
         self.top = tk.Toplevel(self.root)
         self.top.title("Modificar parámetros")
-        self.ajoutFrame = FrameAgregarPunto(master=self.top, SimFlu=self)
+        self.crear_puntos_aleatorios = FrameAgregarPunto(master=self.top, SimFlu=self)
 
     def guardar_simulacion(self):
         try:
